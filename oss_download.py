@@ -17,10 +17,10 @@ from rich.progress import TextColumn, BarColumn, TaskProgressColumn, TimeRemaini
 from rich.progress import MofNCompleteColumn, Column
 
 C = oconf.create()
-C.ds_name = 'dib10k-200-200-v1'
+C.ds_name = 'dib10k-200-800-v1'
 C.oss_prefix = 'is/pub/datasets/dib-10k'
 C.dataset_root = '../datasets'
-C.workers = 20
+C.workers = 40
 
 
 def download(task):
@@ -31,8 +31,9 @@ def download(task):
     bucket = task['bucket']
     key = task['key']
     c = task['config']
+    mode = task['mode']
 
-    dest_dir = c.dataset_root + '/' + C.ds_name + '/' + meta['realname']
+    dest_dir = os.path.join(c.dataset_root, C.ds_name, mode, meta['realname'])
     if not os.path.isdir(dest_dir):
         os.makedirs(dest_dir, exist_ok=True)
     base_fn = os.path.basename(key)
@@ -60,13 +61,14 @@ def run(bucket, progress, Q, mode):
         metas = json.load(f)
     with open(f'{C.ds_name}/{mode}.json') as f:
         train = json.load(f)
-    task_top = progress.add_task(f'{mode.upper()}', total=len(train), transient=True)
+    task_top = progress.add_task(f'{mode.capitalize()} dataset ...', total=len(train), transient=True)
 
     for c in train.keys():
         items = train[c]
         meta = metas[c]
         task_category = progress.add_task(meta['realname'], total=len(items), transient=True)
         task_base = {
+            'mode': mode,
             'progress': progress,
             'task_top': task_top,
             'task_category': task_category,
@@ -82,6 +84,9 @@ def run(bucket, progress, Q, mode):
 
 
 def main():
+    if len(sys.argv) > 1:
+        C.ds_name = sys.argv[1]
+
     print(oconf.to_yaml(C))
     print('--')
 
@@ -111,7 +116,7 @@ def main():
     
         bs = time.time()
         run(bucket, progress, Q, 'train')
-        run(bucket, progress, Q, 'test')
+        run(bucket, progress, Q, 'val')
         Q.join()
 
     progress.stop()

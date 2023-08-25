@@ -71,7 +71,7 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
 
     train_ds = {}
-    test_ds = {}
+    val_ds = {}
     meta_info = {}
     
     for c in categories:
@@ -82,21 +82,23 @@ def main():
         if len(files) >= MAX_IMAGES:
             files = files[:MAX_IMAGES]
         files = [ f"{bid}.{c0}/{bid}.{c0.replace(' ', '_')}_{x}.jpg" for x in files]
-        sp = int(MAX_IMAGES * (1 - VAL_RATE))
 
+        sp = int(len(files) * (1 - VAL_RATE))
+
+        
         train_ds[c] = files[:sp]
-        test_ds[c] = files[sp:]
+        val_ds[c] = files[sp:]
         meta_info[c] = {
             'originname': c,
             'realname': c0,
             'id': bid,
             'images': images,
             'train': len(train_ds[c]),
-            'valid': len(test_ds[c]),
+            'valid': len(val_ds[c]),
         }
 
     save(f'{OUT_DIR}/train.json', train_ds)
-    save(f'{OUT_DIR}/test.json', test_ds)
+    save(f'{OUT_DIR}/val.json', val_ds)
     save(f'{OUT_DIR}/meta.json', meta_info)
 
 def save(fn, data):
